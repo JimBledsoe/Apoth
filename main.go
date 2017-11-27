@@ -19,10 +19,11 @@ import (
 )
 
 const (
-	KUBECONFIG = "KUBECONFIG"
-	DOTKUBE    = ".kube"
-	CONFIGFILE = "config"
-	CONFIGDIR  = "config.d"
+	program    = "Apoth"
+	kubeconfig = "KUBECONFIG"
+	dotkube    = ".kube"
+	configfile = "config"
+	configdir  = "config.d"
 	version    = "NotSetYet" // TODO: move to version file
 )
 
@@ -95,13 +96,13 @@ func selectContext(k8l []k8context) *k8context {
 	// Keep asking for input until they enter something valid and return
 	reader := bufio.NewReader(os.Stdin)
 	for true {
-		fmt.Printf("Enter 1-%d, or 0 to not make a selection : ", len(k8l))
+		fmt.Printf("Enter 1-%d to set a context, 0 or <enter> to abort: ", len(k8l))
 		text, err := reader.ReadString('\n')
 		if err != nil {
 			log.Print(err)
 		} else {
-			text = strings.Replace(text, "\r\n", "", -1) // Windows
-			text = strings.Replace(text, "\n", "", -1)   // Unix
+			text = strings.Replace(text, "\r\n", "", -1) // Windows EOL
+			text = strings.Replace(text, "\n", "", -1)   // Unix EOL
 			// Empty input is the fast ticket out
 			if text == "" || text == "0" {
 				return nil
@@ -109,9 +110,9 @@ func selectContext(k8l []k8context) *k8context {
 			// Validate the input
 			num, err := strconv.Atoi(text)
 			if err != nil {
-				// log.Print(err)
+				// Silently fail garbage input and stay in loop
 			} else if num >= 1 && num <= len(k8l) {
-				return &k8l[num-1]
+				return &k8l[num-1] // Valid input
 			}
 		}
 	}
@@ -130,28 +131,29 @@ func setContext(k8p *k8context) {
 
 // main loop
 func main() {
-	fmt.Println("Apoth", version, "- a Kubernetes context selector")
+	fmt.Printf("\n%s %s - a Kubernetes context selector\n", program, version)
 
 	// If the ENV var is being used, it overrides any config file, so we can't use this utility
-	envKubeConfig := os.Getenv(KUBECONFIG)
+	envKubeConfig := os.Getenv(kubeconfig)
 	if envKubeConfig != "" {
-		fmt.Printf("Setting $%s (%s) overrides all other config location settings.\n",
-			KUBECONFIG, envKubeConfig)
-		os.Exit(1)
+		log.Fatalf("%s: Setting $%s overrides looking for configs in ~/%s", program, kubeconfig, dotkube)
 	}
 
 	// Ensure the directory tree down to the config directory exists and bail if it doesn't
 	home, err := userHomeDir()
 	if err != nil {
-		log.Print(err)
-		os.Exit(2)
+		log.Fatalf("%s: locating user's home directory: %s", program, err)
 	}
-	configDir := path.Join(home, DOTKUBE, CONFIGDIR)
+	configDir := path.Join(home, dotkube, configdir)
 	if _, err = os.Stat(configDir); err != nil {
-		fmt.Printf("This utility pulls contexts from %s and that directory does not exist.\n", configDir)
-		os.Exit(3)
+		log.Fatalf("%s: config directory does not exist: %s", program, err)
 	}
-	//os.MkdirAll(configDir, os.ModePerm) // Kubectl would NEVER do this
+
+	// If there is an existing config file, see if its in the config directory and put there if not
+	// TODO
+
+	// If there are not 2 or more files, then this utility is meaningless
+	// TODO
 
 	// Build contexts from config files
 	k8contexts, err := buildContexts(configDir)
