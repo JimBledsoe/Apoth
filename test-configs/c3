@@ -1,5 +1,4 @@
 apiVersion: v1
-kind: Config
 clusters:
 - cluster:
     server: https://server-3.bogus
@@ -9,6 +8,11 @@ contexts:
     cluster: cluster-3
     user: user-3
   name: context-3
+current-context: ""
+kind: Config
+preferences: {}
 users:
 - name: user-3
   user:
+    password: password-3
+    username: username-3
