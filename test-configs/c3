@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: https://server-3.bogus
+  name: cluster-3
+contexts:
+- context:
+    cluster: cluster-3
+    user: user-3
+  name: context-3
+users:
+- name: user-3
+  user:
